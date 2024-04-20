@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Price Prediction</title>
+    <style>
+        body, html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .title {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch; /* Adjusts the panels to have equal height */
+            height: calc(50% - 40px); /* Subtracting title's height */
+            padding: 20px;
+        }
+
+        .panel {
+            flex: 1; /* Each panel takes up equal space */
+            padding: 10px; /* Adjusted padding to reduce panel height */
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: rgb(32, 178, 134); /* Green background color */
+            margin: 0 10px; /* Adds space between panels */
+            font-size: 14px; /* Adjust font size */
+            line-height: 1.4; /* Adjust line height */
+            max-height: calc(100% - 10px); /* Adjusting max height of panel */
+            overflow: auto; /* Adding overflow to enable scrolling if content exceeds height */
+        }
+        .title{
+            padding: 10px;
+            background-color: #263238;
+            color: white;
+            margin: 10px 10px;
+            border-radius: 20px;
+        }
+        
+
+        h2 {
+            text-align: center;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px; /* Add margin to separate buttons from title */
+
+        }
+
+        .button-container button {
+            margin: 10px; /* Add space between buttons */
+            padding: 10px 20px; /* Increase button padding for better appearance */
+            font-size: 16px; /* Increase button font size */
+            border-radius: 10px;
+            border: none;
+            background-color: white;
+            color: #263238;
+            transition-duration: 0.4s;
+        }
+        .button-container button:hover {
+            background-color: #263238;
+            color:white;
+        }
+        .button-container button:first-child {
+            margin-right: 0; /* Remove margin from the first button */
+        }
+
+        select {
+            margin-top: 20px; /* Add margin to create space between dropdown menu and upper buttons */
+            width: 50%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            height: 40px; /* Increase dropdown menu height */
+            overflow:scroll; /* Adding overflow to enable scrolling if content exceeds height */
+        }
+
+        .title-select {
+            margin-top: 15px; /* Add margin to create space between title and dropdown menu */
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 20px; /* Add margin to separate message from buttons */
+        }
+
+        div#predictionResult {
+            display: flex;
+            justify-content: center;
+        }
+        .featurePanel {
+        display: flex;
+        flex-direction: column; /* Stack features vertically */
+        gap: 10px; /* Space between each feature */
+        }
+
+         .feature {
+        display: flex;
+        justify-content:space-evenly; /* Align feature name and value */
+        align-items: center; /* Center items vertically */
+        font-size: 15px;
+        font-weight: bold;
+         }
+         /* Ensure all inputs and selects within a feature have the same width */
+        .feature input, .feature select {
+         flex: 1; /* Take up equal space */
+         max-width: 200px;
+         margin-bottom: 10px;
+         }
+         input, select {
+        height: 40px; /* Set a specific height */
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        -moz-box-sizing: border-box; /* Firefox */
+         -webkit-box-sizing: border-box; /* Chrome, Safari, and Opera */
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="title">
+        <h1>Real Estate Price Prediction</h1>
+    </div>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>Train a new model</h2>
+            <div class="button-container">
+                <button type="button" onclick="trainModel()">Train</button>
+                <button type="button" onclick="testModel()">Test</button>
+                
+                <div class="title-select">Select a model to train:</div>
+                <select id="modelSelect">
+                    <option disabled selected>Training Model</option>
+                    <option value="Linear Regression">Linear Regression</option>
+                    <option value="Lasso Regression">Lasso Regression</option>
+                    <option value="DecisionTree">Decision Tree</option>
+                    <option value="rbf">RBF</option>
+                    <option value="XGBoost">XGBoost</option>
+                    <option value="Random Forest">Random Forest</option>
+                    <option value="SVR">SVR</option>
+                </select>
+                <div class="title-select">Trained models:</div>
+                <select id="trainedModels">
+                    <option disabled selected>Loading...</option>
+                </select>
+            </div>
+        </div>
+        <div class="panel">
+            <h2>Price Prediction</h2>
+            <div class="button-container">
+                <div class="title-select">Select a trained model:</div>
+                <select id="TrainedModels">
+                    <option disabled selected>Loading...</option>
+                </select>
+                <button type="button" onclick="fetchFeatures()">Get Features</button>
+            </div>
+        
+            <!-- Container for displaying features and predict button -->
+            <div id="featurePanel"></div>
+        
+            <!-- Predict button -->
+            <div class="button-container">
+                <button id="predictButton" type="button" onclick="predict()" style="display: none;">Predict</button>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Display area for the message -->
+    <div id="message"></div>
+    <div class="prediction-container">
+        <!-- Display area for the prediction result -->
+        <div id="predictionResult"></div>
+    </div>
+    
+    <!-- JavaScript code -->
+    <script>
+        function trainModel() {
+            var selectedModel = document.getElementById('modelSelect').value;
+            var modelName = prompt("Enter a name for the trained model:");
+            if (modelName !== null && modelName !== "") {
+                fetch('/train', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selected_model: selectedModel, model_name: modelName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display the message returned from the server
+                    document.getElementById('message').innerText = data.message;
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        function testModel() {
+            var selectedModel = document.getElementById('trainedModels').value;
+            console.log('Selected model:', selectedModel); 
+            fetch('/test_model', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ selected_model: selectedModel })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the test result
+                document.getElementById('message').innerText = data.message;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function fetchFeatures() {
+            var selectedModel = document.getElementById('TrainedModels').value;
+            fetch('/get_features', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ model_name: selectedModel })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the feature names and their values
+                displayFeatures(data.features);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function displayFeatures(features) {
+            var featurePanel = document.getElementById('featurePanel');
+            featurePanel.innerHTML = ''; // Clear previous content
+        
+            for (var feature in features) {
+                var featureDiv = document.createElement('div');
+                featureDiv.className = 'feature';
+        
+                var featureLabel = document.createElement('label');
+                featureLabel.textContent = feature + ':';
+                featureDiv.appendChild(featureLabel);
+
+                // Check if the feature is 'elevator' or 'warehouse'
+        if (feature === 'Elevator' || feature === 'Warehouse' || feature === 'Parking' || feature === 'Reconstruction' || feature === 'Balcony' || feature === 'Document'|| feature === 'Sale-Rent'|| feature==='Neighborhood' ) {
+            // Create a <select> element for these features 
+            var featureSelect = document.createElement('select');
+            featureSelect.id = feature;
+            
+            if (feature==="Document"){
+                // Option for value 0
+                var option0 = document.createElement('option');
+                option0.value = '0';
+                option0.textContent = '0';
+                featureSelect.appendChild(option0);
+
+                // Option for value 1
+                var option1 = document.createElement('option');
+                option1.value = '1';
+                option1.textContent = '1';
+                featureSelect.appendChild(option1);
+
+                // Option for value 2
+                var option2 = document.createElement('option');
+                option2.value = '2';
+                option2.textContent = '2';
+                featureSelect.appendChild(option2);
+
+                // Option for value 3
+                var option3 = document.createElement('option');
+                option3.value = '3';
+                option3.textContent = '3';
+                featureSelect.appendChild(option3);
+
+
+                // Append the select element to the featureDiv or another parent element
+                // var featureDiv = document.createElement('div');
+                featureDiv.appendChild(featureSelect);
+
+
+            }
+            else if (feature==="Sale-Rent"){
+                // Add options for 0 and 1
+                var option0 = document.createElement('option');
+                option0.value = '0';
+                option0.textContent = 'Sale';
+                featureSelect.appendChild(option0);
+
+                var option1 = document.createElement('option');
+                option1.value = '1';
+                option1.textContent = 'Rent';
+                featureSelect.appendChild(option1);
+
+                featureDiv.appendChild(featureSelect);
+            }
+            else if(feature==="Neighborhood"){
+                var option1 = document.createElement('option');
+                option1.value = '1';
+                option1.textContent = 'Farmaniyeh';
+                featureSelect.appendChild(option1);
+
+                var option2 = document.createElement('option');
+                option2.value = '2';
+                option2.textContent = 'Tajrish';
+                featureSelect.appendChild(option2);
+
+                var option3 = document.createElement('option');
+                option3.value = '3';
+                option3.textContent = 'Aghdasiyeh';
+                featureSelect.appendChild(option3);
+
+                // Option 4
+                var option4 = document.createElement('option');
+                option4.value = '4';
+                option4.textContent = 'Zaferaniyeh';
+                featureSelect.appendChild(option4);
+
+                // Option 5
+                var option5 = document.createElement('option');
+                option5.value = '5';
+                option5.textContent = 'Velenjak';
+                featureSelect.appendChild(option5);
+
+                // Option 6
+                var option6 = document.createElement('option');
+                option6.value = '6';
+                option6.textContent = 'Sohanak';
+                featureSelect.appendChild(option6);
+
+                // Option 7
+                var option7 = document.createElement('option');
+                option7.value = '7';
+                option7.textContent = 'Ozgal';
+                featureSelect.appendChild(option7);
+
+                // Option 8
+                var option8 = document.createElement('option');
+                option8.value = '8';
+                option8.textContent = 'Punak';
+                featureSelect.appendChild(option8);
+
+                // Option 9
+                var option9 = document.createElement('option');
+                option9.value = '9';
+                option9.textContent = 'Sadeghie';
+                featureSelect.appendChild(option9);
+
+                // Option 10
+                var option10 = document.createElement('option');
+                option10.value = '10';
+                option10.textContent = 'SaadatAbad';
+                featureSelect.appendChild(option10);
+
+                // Option 11
+                var option11 = document.createElement('option');
+                option11.value = '11';
+                option11.textContent = 'MarzDaran';
+                featureSelect.appendChild(option11);
+
+                // Option 12
+                var option12 = document.createElement('option');
+                option12.value = '12';
+                option12.textContent = 'Jordan';
+                featureSelect.appendChild(option12);
+
+                // Option 13
+                var option13 = document.createElement('option');
+                option13.value = '13';
+                option13.textContent = 'Pasdaran';
+                featureSelect.appendChild(option13);
+
+                // Option 14
+                var option14 = document.createElement('option');
+                option14.value = '14';
+                option14.textContent = 'Gholhak';
+                featureSelect.appendChild(option14);
+
+                // Option 15
+                var option15 = document.createElement('option');
+                option15.value = '15';
+                option15.textContent = 'Vanak';
+                featureSelect.appendChild(option15);
+
+                // Option 16
+                var option16 = document.createElement('option');
+                option16.value = '16';
+                option16.textContent = 'Narmak';
+                featureSelect.appendChild(option16);
+
+                // Option 17
+                var option17 = document.createElement('option');
+                option17.value = '17';
+                option17.textContent = 'Heravi';
+                featureSelect.appendChild(option17);
+
+                // Option 18
+                var option18 = document.createElement('option');
+                option18.value = '18';
+                option18.textContent = 'KoiMehran';
+                featureSelect.appendChild(option18);
+
+                // Option 19
+                var option19 = document.createElement('option');
+                option19.value = '19';
+                option19.textContent = 'JannatAbadJonobi';
+                featureSelect.appendChild(option19);
+
+                // Option 20
+                var option20 = document.createElement('option');
+                option20.value = '20';
+                option20.textContent = 'JannatAbadShomali';
+                featureSelect.appendChild(option20);
+
+
+                featureDiv.appendChild(featureSelect);
+            }
+            else{
+                // Add options for 0 and 1
+            var option0 = document.createElement('option');
+            option0.value = '0';
+            option0.textContent = 'False';
+            featureSelect.appendChild(option0);
+
+            var option1 = document.createElement('option');
+            option1.value = '1';
+            option1.textContent = 'True';
+            featureSelect.appendChild(option1);
+
+            featureDiv.appendChild(featureSelect);
+            }
+            }
+            
+        else{
+            var featureSelect = document.createElement('input');
+            featureSelect.type='text';
+            featureSelect.id = feature;
+            }
+                // var featureValues = features[feature]; // Get the array of values directly
+        
+                // featureValues.forEach(value => {
+                //     var option = document.createElement('option');
+                //     option.value = value;
+                //     option.textContent = value;
+                //     featureSelect.appendChild(option);
+                // });
+        
+                featureDiv.appendChild(featureSelect);
+                featurePanel.appendChild(featureDiv);
+            }
+        
+            // Show the predict button
+            document.getElementById('predictButton').style.display = 'block';
+        }
+
+        function predict() {
+            var selectedModel = document.getElementById('TrainedModels').value;
+            var userInputs = {};
+            
+            
+            var featureInputs = document.querySelectorAll('.feature input[type="text"], .feature select');
+            featureInputs.forEach(function(input) {
+            var featureName = input.id; // Assuming each input and select has an id that corresponds to the feature name
+            var featureValue;
+
+            // Check if the input is a select element
+            if (input.tagName.toLowerCase() === 'select') {
+                // For select elements, get the selected value
+                featureValue = input.value;
+            } else {
+                // For text inputs, get the input value
+                featureValue = input.value;
+            }
+
+            userInputs[featureName] = featureValue;
+        });
+                    
+            
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ selected_model: selectedModel, user_input: userInputs })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the prediction result
+                displayPrediction(data.prediction);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function displayPrediction(prediction) {
+            var predictionResult = document.getElementById('predictionResult');
+            predictionResult.textContent = 'Predicted value: ' + prediction;
+        }
+        
+        
+        
+
+        function fetchModels() {
+            fetch('/get_models')
+            .then(response => response.json())
+            .then(data => {
+                // Populate the dropdown with fetched models
+                const select = document.getElementById('trainedModels');
+                select.innerHTML = ''; // Clear previous options
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.text = model;
+                    select.add(option);
+                });
+                // Enable or disable the Test button based on the number of options in the dropdown
+                var testButton = document.querySelector('.button-container button:nth-child(2)'); // Selecting the second button in the button-container
+                testButton.disabled = select.options.length < 1;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function fetchPreTrainedModels() {
+            fetch('/get_models')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('TrainedModels');
+                select.innerHTML = ''; // Clear previous options
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.text = model;
+                    select.add(option);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Call the fetchModels function when the page loads
+        window.onload = function() {
+            fetchModels(); // Fetch models for the first panel
+            fetchPreTrainedModels(); // Fetch pre-trained models for the second panel
+        };
+    </script>
+    
+</body>
+</html>

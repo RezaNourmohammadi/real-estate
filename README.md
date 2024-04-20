@@ -1,3 +1,3 @@
-# real-estate-price-prediction
+# real-estate-price-prediction-
 
-home price prediction using federated learning
+estimating the price of real estate using federated learning
